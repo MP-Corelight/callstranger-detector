@@ -23,7 +23,11 @@ export {
     CallStranger_Data_Exfiltration_Attempt,
     CallStranger_Data_Exfiltration_Success,
     CallStranger_UPnP_To_External_Host,
-    CallStranger_UPnP_Request_Callback_To_External_Host
+    CallStranger_UPnP_Request_Callback_To_External_Host,
+    Data_Exfiltration_Attempt,
+    Data_Exfiltration_Success,
+    UPnP_To_External_Host,
+    UPnP_Request_Callback_To_External_Host
   };
 
   # Default is 4kb, tune as needed
@@ -32,6 +36,9 @@ export {
 
   # If true, requires the 'NT' header to be present in the UPnP SUBSCRIBE request per the UPnP standards. Less likely to FP if true but easier to bypass
   option strict_upnp_protocol_detection = F;
+
+  # Use the shorter notice types (without the 'CallStranger_' prefix)
+  option short_notices = F;
 }
 
 const no_addr = 0.0.0.0;
@@ -99,6 +106,26 @@ event http_header(c: connection, is_orig: bool, name: string, value: string) {
         } else if (name == "NT") {
             c$http$saw_nt_header = T;
         }
+    }
+}
+
+# Replace the longer CallStranger_ notices with shorter ones when enabled
+hook Notice::notice(n: Notice::Info) {
+    if (!short_notices) return;
+    
+    switch (n$note) {
+        case CallStranger_Data_Exfiltration_Attempt:
+            n$note = Data_Exfiltration_Attempt;
+            return;
+        case CallStranger_Data_Exfiltration_Success:
+            n$note = Data_Exfiltration_Success;
+            return;
+        case CallStranger_UPnP_To_External_Host:
+            n$note = UPnP_To_External_Host;
+            return;
+        case CallStranger_UPnP_Request_Callback_To_External_Host:
+            n$note = UPnP_Request_Callback_To_External_Host;
+            return;
     }
 }
 
